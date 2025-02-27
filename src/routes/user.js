@@ -11,7 +11,7 @@ userRouter.get("/user/requests/received", userAuth, async (req, res) => {
     const requests = await ConnectRequest.find({
       toUserId: user._id,
       status: "interested",
-    }).populate("fromUserId", ["firstName", "lastName"]);
+    }).populate("fromUserId", ["firstName", "lastName","photoUrl"]);
 
     res.json({ data: requests });
   } catch (error) {
@@ -27,8 +27,8 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
         { toUserId: user._id, status: "accepted" },
       ],
     })
-      .populate("fromUserId", ["firstName", "lastName"])
-      .populate("toUserId", ["firstName", "lastName"]);
+      .populate("fromUserId", ["firstName", "lastName","photoUrl"])
+      .populate("toUserId", ["firstName", "lastName","photoUrl"]);
     const data = requests.map((each) => {
       if (each.fromUserId._id.toString() == user._id) {
         return each.toUserId;
@@ -63,7 +63,7 @@ userRouter.get("/feed", userAuth, async (req, res) => {
         { _id: { $nin: Array.from(hideUsers) } },
         { _id: { $ne: user._id } },
       ],
-    }).select("firstName emailId skills").skip(skip).limit(limit)
+    }).select("_id firstName lastName photoUrl age skills").skip(skip).limit(limit)
 
     res.status(200).json({ data: users });
   } catch (error) {

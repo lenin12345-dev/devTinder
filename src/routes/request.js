@@ -41,7 +41,7 @@ requestRouter.post(
       if (existingConnection) {
         return res
           .status(400)
-          .json({ message: "You have already sent a request" });
+          .json({ message: "You have already sent a request or the person has sent you a request" });
       }
 
       const data = new ConnectRequest({

@@ -4,6 +4,8 @@ const cookieParser = require("cookie-parser");
 const dbConnect = require("../src/config/db");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
+const http = require("http")
+const initializeSocket = require("../src/utils/socket")
 
 
 
@@ -26,10 +28,11 @@ app.use("/",requestRouter)
 app.use("/",userRouter)
 
 
-
+const server = http.createServer(app)
+initializeSocket(server)
 dbConnect()
   .then(() => {
-    app.listen(3000, () => {
+    server.listen(3000, () => {
       console.log("server running on port 3000");
     });
   })

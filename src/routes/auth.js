@@ -55,7 +55,9 @@ authRouter.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid credential" });
     }
     const token = await user.getJWT();
-
+//It sends a Set-Cookie header in the response to the client (browser).
+//The browser reads this header and then:Stores the cookie in the browser's storage 
+//Automatically sends this cookie with future requests to your server (like /dashboard, /profile, etc.), until it expires.
     res.cookie("token", token, {
       expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });

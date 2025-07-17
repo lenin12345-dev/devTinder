@@ -18,7 +18,6 @@ const validateEditProfile=(req)=>{
   const isValiidate = Object.keys(req.body).every((each)=>{
     return editableKey.includes(each)
   })
-  console.log('isValid',isValiidate);
   
   return isValiidate;
 }

@@ -26,6 +26,7 @@ app.use("/",profileRouter)
 
 app.use("/",requestRouter)
 app.use("/",userRouter)
+app.use("/",chatRouter)
 
 
 const server = http.createServer(app)

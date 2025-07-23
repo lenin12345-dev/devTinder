@@ -23,7 +23,7 @@ const initializeSocket = (server) => {
     });
     socket.on(
       "sendMessage",
-      async ({ firstName, userId, targetUserId, text }) => {
+      async ({ firstName,lastName, userId, targetUserId, text }) => {
         try {
           const room = getSecretRoomId(userId, targetUserId);
           // save message to db
@@ -41,13 +41,15 @@ const initializeSocket = (server) => {
             senderId: userId,
             text,
           });
+            io.to(room).emit("messageReceived", { firstName, lastName,text });
           await chat.save();
         } catch (err) {
           console.log(err);
         }
-        io.to(room).emit("messageReceived", { firstName, text });
+     
       }
     );
+     
     socket.on("disconnect", () => {});
   });
 };

@@ -23,14 +23,33 @@ const initializeSocket = (server) => {
     });
     socket.on(
       "sendMessage",
-      async ({ firstName,lastName, userId, targetUserId, text }) => {
+      async ({ firstName, lastName, userId, targetUserId, text }) => {
         try {
+          // Check if there's an accepted connection
+          const connection = await ConnectRequest.findOne({
+            $or: [
+              { fromUserId: userId, toUserId: targetUserId },
+              { fromUserId: targetUserId, toUserId: userId },
+            ],
+            status: "accepted",
+          });
+
+          if (!connection) {
+            // If not connected, deny joining
+            return socket.emit("chatDenied", {
+              message: "You can only chat with accepted connections.",
+            });
+          }
+
           const room = getSecretRoomId(userId, targetUserId);
           // save message to db
 
           let chat = await Chat.findOne({
             participants: { $all: [userId, targetUserId] },
-          });
+          })
+            .select("messages")
+            .slice("messages", -20);
+            
           if (!chat) {
             chat = new Chat({
               participants: [userId, targetUserId],
@@ -41,15 +60,14 @@ const initializeSocket = (server) => {
             senderId: userId,
             text,
           });
-            io.to(room).emit("messageReceived", { firstName, lastName,text });
+          io.to(room).emit("messageReceived", { firstName, lastName, text });
           await chat.save();
         } catch (err) {
           console.log(err);
         }
-     
       }
     );
-     
+
     socket.on("disconnect", () => {});
   });
 };

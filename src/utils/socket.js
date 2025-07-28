@@ -1,6 +1,7 @@
 const socket = require("socket.io");
 const crypto = require("crypto");
 const Chat = require("../../src/models/chat");
+const onlineUsers = new Map();
 
 const getSecretRoomId = (userId, targetUserId) => {
   return crypto
@@ -17,6 +18,13 @@ const initializeSocket = (server) => {
     },
   });
   io.on("connection", (socket) => {
+    let currentUserId = null;
+
+    socket.on("goOnline", (userId) => {
+      currentUserId = userId;
+      onlineUsers.set(userId, socket.id);
+      io.emit("onlineUsers", Array.from(onlineUsers.keys()));
+    });
     socket.on("joinChat", ({ userId, targetUserId }) => {
       const room = getSecretRoomId(userId, targetUserId);
       socket.join(room);
@@ -49,7 +57,7 @@ const initializeSocket = (server) => {
           })
             .select("messages")
             .slice("messages", -20);
-            
+
           if (!chat) {
             chat = new Chat({
               participants: [userId, targetUserId],
@@ -68,7 +76,12 @@ const initializeSocket = (server) => {
       }
     );
 
-    socket.on("disconnect", () => {});
+    socket.on("disconnect", () => {
+      if (currentUserId) {
+        onlineUsers.delete(currentUserId);
+        io.emit("onlineUsers", Array.from(onlineUsers.keys()));
+      }
+    });
   });
 };
 module.exports = initializeSocket;

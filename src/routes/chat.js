@@ -1,5 +1,7 @@
 const express = require("express");
 const Chat = require("../../src/models/chat");
+const { userAuth } = require("../middlewares/auth");
+
 
 const chatRouter = express.Router();
 
@@ -27,4 +29,6 @@ chatRouter.get("/chat/:targetUserId", userAuth, async (req, res) => {
   }
 });
 
-module.exports = chatRouter;
+module.exports = {
+  chatRouter
+};

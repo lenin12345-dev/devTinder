@@ -13,6 +13,8 @@ const {authRouter} = require("./routes/auth")
 const {profileRouter} = require("./routes/profile")
 const {requestRouter} = require("./routes/request")
 const {userRouter} = require("./routes/user")
+const {chatRouter} = require("./routes/chat")
+
 
 app.use(cors({
   origin: ["http://localhost:5173"],

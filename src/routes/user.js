@@ -11,7 +11,7 @@ userRouter.get("/user/requests/received", userAuth, async (req, res) => {
     const requests = await ConnectRequest.find({
       toUserId: user._id,
       status: "interested",
-    }).populate("fromUserId", ["firstName", "lastName","photoUrl"]);
+    }).populate("fromUserId", ["firstName", "lastName", "photoUrl"]);
 
     res.json({ data: requests });
   } catch (error) {
@@ -27,8 +27,8 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
         { toUserId: user._id, status: "accepted" },
       ],
     })
-      .populate("fromUserId", ["firstName", "lastName","photoUrl"])
-      .populate("toUserId", ["firstName", "lastName","photoUrl"]);
+      .populate("fromUserId", ["firstName", "lastName", "photoUrl"])
+      .populate("toUserId", ["firstName", "lastName", "photoUrl"]);
     const data = requests.map((each) => {
       if (each.fromUserId._id.toString() == user._id) {
         return each.toUserId;
@@ -45,29 +45,43 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
 userRouter.get("/feed", userAuth, async (req, res) => {
   try {
     const user = req.user;
-    const page = parseInt(req.query.page) || 1;
-    let limit = parseInt(req.query.limit) || 10;
-    limit = limit>50?50:limit
-    const skip = (page-1) * limit
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    const cursor = req.query.cursor; // last user id
+
+    // hide swiped users
     const requests = await ConnectRequest.find({
       $or: [{ fromUserId: user._id }, { toUserId: user._id }],
     }).select("fromUserId toUserId");
+
     let hideUsers = new Set();
-
-    requests.forEach((each) => {
-      hideUsers.add(each.fromUserId.toString());
-      hideUsers.add(each.toUserId.toString());
+    requests.forEach((r) => {
+      hideUsers.add(r.fromUserId.toString());
+      hideUsers.add(r.toUserId.toString());
     });
-    const users = await User.find({
-      $and: [
-        { _id: { $nin: Array.from(hideUsers) } },
-        { _id: { $ne: user._id } },
-      ],
-    }).select("_id firstName lastName photoUrl age skills").skip(skip).limit(limit)
 
-    res.status(200).json({ data: users });
-  } catch (error) {
-    res.status(400).json({ error: error.message })
+    let query = {
+      _id: { $nin: [...hideUsers, user._id] },
+    };
+
+    // cursor condition
+    if (cursor) {
+      query._id.$lt = cursor;
+    }
+
+    const users = await User.find(query)
+      .sort({ _id: -1 })
+      .limit(limit + 1);
+
+    const hasMore = users.length > limit;
+    if (hasMore) users.pop();
+
+    res.json({
+      data: users,
+      nextCursor: users.length ? users[users.length - 1]._id : null,
+      hasMore,
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 });
 

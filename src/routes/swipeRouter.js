@@ -1,6 +1,6 @@
 const express = require("express");
 const { userAuth } = require("../middlewares/auth");
-const Swipe = require("../models/Swipe");
+const Swipe = require("../models/Like");
 const User = require("../models/user");
 
 const swipeRouter = express.Router();
@@ -28,7 +28,7 @@ swipeRouter.post("/swipe/:toUserId/:action", userAuth, async (req, res) => {
     const swipe = await Swipe.findOneAndUpdate(
       { fromUser: fromUserId, toUser: toUserId },
       { action },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, new: true, setDefaultsOnInsert: true },
     );
 
     res.status(201).json({ message: "Swipe recorded", swipe });
@@ -40,8 +40,10 @@ swipeRouter.post("/swipe/:toUserId/:action", userAuth, async (req, res) => {
 // Get all swipes done by logged-in user
 swipeRouter.get("/swipes", userAuth, async (req, res) => {
   try {
-    const swipes = await Swipe.find({ fromUser: req.user._id })
-      .populate("toUser", "firstName lastName photoUrl");
+    const swipes = await Swipe.find({ fromUser: req.user._id }).populate(
+      "toUser",
+      "firstName lastName photoUrl",
+    );
 
     res.status(200).json({ swipes });
   } catch (err) {
@@ -56,8 +58,16 @@ swipeRouter.get("/match/:userId", userAuth, async (req, res) => {
     const toUserId = req.params.userId;
 
     // Check if both users liked each other
-    const swipe1 = await Swipe.findOne({ fromUser: fromUserId, toUser: toUserId, action: "like" });
-    const swipe2 = await Swipe.findOne({ fromUser: toUserId, toUser: fromUserId, action: "like" });
+    const swipe1 = await Swipe.findOne({
+      fromUser: fromUserId,
+      toUser: toUserId,
+      action: "like",
+    });
+    const swipe2 = await Swipe.findOne({
+      fromUser: toUserId,
+      toUser: fromUserId,
+      action: "like",
+    });
 
     const isMatch = !!(swipe1 && swipe2);
 

@@ -1,6 +1,7 @@
 const express = require("express");
 const { userAuth } = require("../middlewares/auth");
 const ConnectRequest = require("../models/connectionRequest");
+const Swipe = require("../models/Like");
 const User = require("../models/user");
 
 const userRouter = express.Router();
@@ -48,7 +49,7 @@ userRouter.get("/feed", userAuth, async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 10, 50);
     const cursor = req.query.cursor; // last user id
 
-    // hide swiped users
+    // Hide users with connection requests
     const requests = await ConnectRequest.find({
       $or: [{ fromUserId: user._id }, { toUserId: user._id }],
     }).select("fromUserId toUserId");
@@ -57,6 +58,15 @@ userRouter.get("/feed", userAuth, async (req, res) => {
     requests.forEach((r) => {
       hideUsers.add(r.fromUserId.toString());
       hideUsers.add(r.toUserId.toString());
+    });
+
+    // Also hide users that have been swiped on (liked or disliked)
+    const swipes = await Swipe.find({
+      fromUser: user._id,
+    }).select("toUser");
+
+    swipes.forEach((s) => {
+      hideUsers.add(s.toUser.toString());
     });
 
     let query = {

@@ -30,6 +30,8 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
     })
       .populate("fromUserId", ["firstName", "lastName", "photoUrl"])
       .populate("toUserId", ["firstName", "lastName", "photoUrl"]);
+
+    console.log("Connections found:", user);
     const data = requests.map((each) => {
       if (each.fromUserId._id.toString() == user._id) {
         return each.toUserId;

@@ -5,6 +5,8 @@ const dbConnect = require("../src/config/db");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const http = require("http");
+require("dotenv").config();
+
 const initializeSocket = require("../src/utils/socket");
 
 const { authRouter } = require("./routes/auth");

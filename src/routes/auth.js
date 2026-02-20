@@ -18,7 +18,15 @@ authRouter.post("/signup", async (req, res) => {
       skills,
       gender,
     } = req.body;
+
+    // check existing user
+    const existingUser = await User.findOne({ emailId });
+    if (existingUser) {
+      return res.status(409).json({ message: "Email already registered" });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = new User({
       firstName,
       lastName,
@@ -29,50 +37,114 @@ authRouter.post("/signup", async (req, res) => {
       photoUrl,
       password: hashedPassword,
     });
-    const token = await user.getJWT();
-    res.cookie("token", token, {
-      expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    });
 
     await user.save();
-    res.status(201).json({data:user, message: "user created successfully" });
+
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
+
+    // store refresh token in DB
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    // send cookies
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "Strict",
+      maxAge: 15 * 60 * 1000,
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "Strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(201).json({
+      message: "User created successfully",
+      data: { _id: user._id, firstName: user.firstName, emailId: user.emailId },
+    });
   } catch (err) {
-    console.error("Signup Error:", err);
     res.status(500).json({ message: err.message });
   }
 });
+
 authRouter.post("/login", async (req, res) => {
   try {
     const { emailId, password } = req.body;
-    const user = await User.findOne({ emailId });
 
-    if (!user) {
-      return res.status(404).json({ message: "Invalid credential" });
-    }
-    const isValidPassword = await user.validatePassword(password);
+    const user = await User.findOne({ emailId }).select("+refreshToken");
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
-    if (!isValidPassword) {
-      return res.status(401).json({ message: "Invalid credential" });
-    }
-    const token = await user.getJWT();
-//It sends a Set-Cookie header in the response to the client (browser).
-//The browser reads this header and then:Stores the cookie in the browser's storage 
-//Automatically sends this cookie with future requests to your server (like /dashboard, /profile, etc.), until it expires.
-    res.cookie("token", token, {
-      expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    const isValid = await user.validatePassword(password);
+    if (!isValid)
+      return res.status(401).json({ message: "Invalid credentials" });
+
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
+
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "Strict",
+      maxAge: 15 * 60 * 1000,
     });
-    res.status(200).json({ data: user, message: "login successful" });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "Strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.json({ message: "Login successful", data: user });
   } catch (err) {
-    console.error("Login Error:", err);
     res.status(500).json({ message: err.message });
   }
 });
+authRouter.post("/refresh", async (req, res) => {
+  try {
+    const token = req.cookies.refreshToken;
+    if (!token) return res.status(401).json({ message: "Unauthorized" });
 
-authRouter.post("/logout", (req, res) => {
-  res.cookie("token", null, {
-    expires: new Date(Date.now()),
-  });
-  res.send("Logout Successfully");
+    const decoded = jwt.verify(token, REFRESH_SECRET);
+
+    const user = await User.findById(decoded._id).select("+refreshToken");
+    if (!user || user.refreshToken !== token)
+      return res.status(403).json({ message: "Invalid session" });
+
+    const newAccessToken = user.generateAccessToken();
+
+    res.cookie("accessToken", newAccessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "Strict",
+      maxAge: 15 * 60 * 1000,
+    });
+
+    res.json({ message: "Token refreshed" });
+  } catch {
+    res.status(403).json({ message: "Session expired" });
+  }
+});
+
+authRouter.post("/logout", async (req, res) => {
+  const token = req.cookies.refreshToken;
+
+  if (token) {
+    const decoded = jwt.decode(token);
+    await User.findByIdAndUpdate(decoded._id, { refreshToken: null });
+  }
+
+  res.clearCookie("accessToken");
+  res.clearCookie("refreshToken");
+
+  res.json({ message: "Logged out" });
 });
 
 module.exports = {

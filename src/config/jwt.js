@@ -1,0 +1,6 @@
+module.exports = {
+  ACCESS_SECRET: process.env.ACCESS_TOKEN_SECRET,
+  REFRESH_SECRET: process.env.REFRESH_TOKEN_SECRET,
+  ACCESS_EXPIRY: process.env.ACCESS_TOKEN_EXPIRY,
+  REFRESH_EXPIRY: process.env.REFRESH_TOKEN_EXPIRY,
+};

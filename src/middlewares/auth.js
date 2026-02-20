@@ -1,28 +1,33 @@
-const jwt = require("jsonwebtoken")
-const User = require("../models/user")
+const jwt = require("jsonwebtoken");
+const User = require("../models/user");
+const { ACCESS_SECRET } = require("../config/jwt");
 
-const userAuth = async(req,res,next)=>{
+const userAuth = async (req, res, next) => {
+  try {
+    const accessToken = req.cookies.accessToken;
+
+    if (!accessToken) {
+      return res.status(401).json({ message: "UNAUTHORIZED" });
+    }
+
     try {
-    const {token} = req.cookies;
+      // verify access token
+      const decoded = jwt.verify(accessToken, ACCESS_SECRET);
 
-    if(!token){
-        return res.status(401).json({message:"Unauthorized"})
+      // attach minimal data (no DB hit every request)
+      req.userId = decoded._id;
+      return next();
+    } catch (err) {
+      // important: detect expiry separately
+      if (err.name === "TokenExpiredError") {
+        return res.status(401).json({ message: "TOKEN_EXPIRED" });
+      }
+
+      return res.status(403).json({ message: "INVALID_TOKEN" });
     }
-    const decodedObj = await jwt.verify(token,"lenindev")
-    
-    const {_id} = decodedObj
-    const user = await User.findById(_id)
-    if(!user){
-        return res.status(404).json({message:"User not found"})
-        }
-        req.user = user;
-        next()
-    }catch(err){
-      res.status(400).send("Error" + err.message)
-    }
+  } catch (error) {
+    res.status(500).json({ message: "AUTH_ERROR" });
+  }
+};
 
-}
-
-module.exports = {
-    userAuth
-}
+module.exports = { userAuth };

@@ -39,9 +39,10 @@ requestRouter.post(
         ],
       });
       if (existingConnection) {
-        return res
-          .status(400)
-          .json({ message: "You have already sent a request or the person has sent you a request" });
+        return res.status(400).json({
+          message:
+            "You have already sent a request or the person has sent you a request",
+        });
       }
 
       const data = new ConnectRequest({
@@ -54,7 +55,7 @@ requestRouter.post(
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
-  }
+  },
 );
 
 requestRouter.post(
@@ -71,15 +72,13 @@ requestRouter.post(
           .json({ message: "User who is requesting not found" });
       }
 
-
-      
       const allowedStatus = ["accepted", "rejected"];
       if (!allowedStatus.includes(status)) {
         return res.status(400).json({ message: "Invalid status" });
       }
       const connectReview = await ConnectRequest.findOne({
         fromUserId: requestId,
-        toUserId:toUserId,
+        toUserId: toUserId,
         status: "interested",
       });
       if (!connectReview) {
@@ -87,13 +86,13 @@ requestRouter.post(
           .status(400)
           .json({ message: "connection request not found" });
       }
-      connectReview.status = status
-     const data = await connectReview.save()
-     res.status(201).json({data:data });
+      connectReview.status = status;
+      const data = await connectReview.save();
+      res.status(201).json({ data: data });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
-  }
+  },
 );
 
 module.exports = {

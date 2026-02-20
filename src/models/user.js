@@ -2,6 +2,12 @@ const mongoose = require("mongoose");
 const validator = require("validator");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const {
+  ACCESS_SECRET,
+  REFRESH_SECRET,
+  ACCESS_EXPIRY,
+  REFRESH_EXPIRY,
+} = require("../config/jwt");
 
 const { Schema } = mongoose;
 
@@ -55,14 +61,26 @@ const userSchema = new Schema(
     skills: {
       type: [String],
     },
+    refreshToken: {
+      type: String,
+      select: false,
+    },
   },
   { timestamps: true },
 );
 
-userSchema.methods.getJWT = async function () {
-  const token = jwt.sign({ _id: this._id }, "lenindev", { expiresIn: "1d" });
-  return token;
+userSchema.methods.generateAccessToken = function () {
+  return jwt.sign({ _id: this._id }, ACCESS_SECRET, {
+    expiresIn: ACCESS_EXPIRY,
+  });
 };
+
+userSchema.methods.generateRefreshToken = function () {
+  return jwt.sign({ _id: this._id }, REFRESH_SECRET, {
+    expiresIn: REFRESH_EXPIRY,
+  });
+};
+
 userSchema.methods.validatePassword = async function (inpuTpassword) {
   const isValid = await bcrypt.compare(inpuTpassword, this.password);
   return isValid;

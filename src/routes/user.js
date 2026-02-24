@@ -8,9 +8,9 @@ const userRouter = express.Router();
 
 userRouter.get("/user/requests/received", userAuth, async (req, res) => {
   try {
-    const user = req.user;
+    const userId = req.userId;
     const requests = await ConnectRequest.find({
-      toUserId: user._id,
+      toUserId: userId,
       status: "interested",
     }).populate("fromUserId", ["firstName", "lastName", "photoUrl"]);
 
@@ -21,19 +21,18 @@ userRouter.get("/user/requests/received", userAuth, async (req, res) => {
 });
 userRouter.get("/user/connections", userAuth, async (req, res) => {
   try {
-    const user = req.user;
+    const userId = req.userId;
     const requests = await ConnectRequest.find({
       $or: [
-        { fromUserId: user._id, status: "accepted" },
-        { toUserId: user._id, status: "accepted" },
+        { fromUserId: userId, status: "accepted" },
+        { toUserId: userId, status: "accepted" },
       ],
     })
       .populate("fromUserId", ["firstName", "lastName", "photoUrl"])
       .populate("toUserId", ["firstName", "lastName", "photoUrl"]);
 
-    console.log("Connections found:", user);
     const data = requests.map((each) => {
-      if (each.fromUserId._id.toString() == user._id) {
+      if (each.fromUserId._id.toString() == userId) {
         return each.toUserId;
       }
       return each.fromUserId;
@@ -47,24 +46,24 @@ userRouter.get("/user/connections", userAuth, async (req, res) => {
 
 userRouter.get("/feed", userAuth, async (req, res) => {
   try {
-    const user = req.user;
-    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
-    const cursor = req.query.cursor; // last user id
+    const userId = req.userId;
 
-    // Hide users with connection requests
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    const cursor = req.query.cursor;
+
     const requests = await ConnectRequest.find({
-      $or: [{ fromUserId: user._id }, { toUserId: user._id }],
+      $or: [{ fromUserId: userId }, { toUserId: userId }],
     }).select("fromUserId toUserId");
 
     let hideUsers = new Set();
+
     requests.forEach((r) => {
       hideUsers.add(r.fromUserId.toString());
       hideUsers.add(r.toUserId.toString());
     });
 
-    // Also hide users that have been swiped on (liked or disliked)
     const swipes = await Swipe.find({
-      fromUser: user._id,
+      fromUser: userId,
     }).select("toUser");
 
     swipes.forEach((s) => {
@@ -72,10 +71,9 @@ userRouter.get("/feed", userAuth, async (req, res) => {
     });
 
     let query = {
-      _id: { $nin: [...hideUsers, user._id] },
+      _id: { $nin: [...hideUsers, userId] },
     };
 
-    // cursor condition
     if (cursor) {
       query._id.$lt = cursor;
     }

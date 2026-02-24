@@ -8,7 +8,7 @@ const swipeRouter = express.Router();
 // Create or update a swipe (like or dislike)
 swipeRouter.post("/swipe/:toUserId/:action", userAuth, async (req, res) => {
   try {
-    const fromUserId = req.user._id;
+    const fromUserId = req.userId;
     const { toUserId, action } = req.params;
 
     const allowedActions = ["like", "dislike"];
@@ -54,7 +54,7 @@ swipeRouter.get("/swipes", userAuth, async (req, res) => {
 // Check if two users liked each other (match)
 swipeRouter.get("/match/:userId", userAuth, async (req, res) => {
   try {
-    const fromUserId = req.user._id;
+    const fromUserId = req.userId;
     const toUserId = req.params.userId;
 
     // Check if both users liked each other

@@ -134,17 +134,37 @@ authRouter.post("/refresh", async (req, res) => {
 });
 
 authRouter.post("/logout", async (req, res) => {
-  const token = req.cookies.refreshToken;
+  try {
+    const refreshToken = req.cookies.refreshToken;
 
-  if (token) {
-    const decoded = jwt.decode(token);
-    await User.findByIdAndUpdate(decoded._id, { refreshToken: null });
+    if (refreshToken) {
+      try {
+        const decoded = jwt.verify(refreshToken, REFRESH_SECRET);
+
+        await User.findByIdAndUpdate(decoded._id, {
+          refreshToken: null,
+        });
+      } catch (err) {
+        console.log("Invalid or expired refresh token during logout");
+      }
+    }
+
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+    });
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+    });
+
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "LOGOUT_ERROR" });
   }
-
-  res.clearCookie("accessToken");
-  res.clearCookie("refreshToken");
-
-  res.json({ message: "Logged out" });
 });
 
 module.exports = {

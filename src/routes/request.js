@@ -12,7 +12,7 @@ requestRouter.post(
     try {
       const toUserId = req.params.toUserId;
       const status = req.params.status;
-      const fromUserId = req.user._id;
+      const fromUserId = req.userId;
       const userExist = await User.findById(toUserId);
 
       if (!userExist) {
@@ -64,7 +64,7 @@ requestRouter.post(
   async (req, res) => {
     try {
       const { status, requestId } = req.params;
-      const toUserId = req.user._id;
+      const toUserId = req.userId;
       const userExist = await User.findById(requestId);
       if (!userExist) {
         return res

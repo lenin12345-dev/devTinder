@@ -2,19 +2,17 @@ const express = require("express");
 const Chat = require("../../src/models/chat");
 const { userAuth } = require("../middlewares/auth");
 
-
 const chatRouter = express.Router();
 
 chatRouter.get("/chat/:targetUserId", userAuth, async (req, res) => {
   const { targetUserId } = req.params;
-  const userId = req.user._id;
+  const userId = req.userId; // Assuming userAuth middleware attaches userId to req
   try {
     let chat = await Chat.findOne({
       participants: { $all: [userId, targetUserId] },
     }).populate({
-      path:"messages.senderId",
-      select:"firstName lastName"
-
+      path: "messages.senderId",
+      select: "firstName lastName",
     });
     if (!chat) {
       chat = new Chat({
@@ -30,5 +28,5 @@ chatRouter.get("/chat/:targetUserId", userAuth, async (req, res) => {
 });
 
 module.exports = {
-  chatRouter
+  chatRouter,
 };

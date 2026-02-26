@@ -15,6 +15,7 @@ const { requestRouter } = require("./routes/request");
 const { userRouter } = require("./routes/user");
 const { chatRouter } = require("./routes/chat");
 const { swipeRouter } = require("./routes/swipeRouter");
+const rateLimit = require("express-rate-limit");
 
 app.use(
   cors({
@@ -22,6 +23,7 @@ app.use(
     credentials: true,
   }),
 );
+app.use("/login", rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 app.use(express.json());
 app.use(cookieParser());
 
@@ -32,6 +34,10 @@ app.use("/", requestRouter);
 app.use("/", userRouter);
 app.use("/", chatRouter);
 app.use("/", swipeRouter);
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ message: "SERVER_ERROR" });
+});
 
 const server = http.createServer(app);
 initializeSocket(server);

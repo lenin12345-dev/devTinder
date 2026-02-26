@@ -40,7 +40,7 @@ swipeRouter.post("/swipe/:toUserId/:action", userAuth, async (req, res) => {
 // Get all swipes done by logged-in user
 swipeRouter.get("/swipes", userAuth, async (req, res) => {
   try {
-    const swipes = await Swipe.find({ fromUser: req.user._id }).populate(
+    const swipes = await Swipe.find({ fromUser: req.userId }).populate(
       "toUser",
       "firstName lastName photoUrl",
     );

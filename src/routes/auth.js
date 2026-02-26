@@ -3,6 +3,8 @@ const authRouter = express.Router();
 const { validation } = require("../../src/utils/validation");
 const User = require("../../src/models/user");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const { REFRESH_SECRET } = require("../config/jwt");
 
 authRouter.post("/signup", async (req, res) => {
   try {
@@ -51,14 +53,14 @@ authRouter.post("/signup", async (req, res) => {
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: true,
-      sameSite: "Strict",
+      sameSite: "strict",
       maxAge: 15 * 60 * 1000,
     });
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: true,
-      sameSite: "Strict",
+      sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -91,18 +93,29 @@ authRouter.post("/login", async (req, res) => {
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: true,
-      sameSite: "Strict",
+      sameSite: "strict",
       maxAge: 15 * 60 * 1000,
     });
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: true,
-      sameSite: "Strict",
+      sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.json({ message: "Login successful", data: user });
+    res.json({
+      message: "Login successful",
+      data: {
+        data: {
+          _id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          emailId: user.emailId,
+          photoUrl: user.photoUrl,
+        },
+      },
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -123,7 +136,7 @@ authRouter.post("/refresh", async (req, res) => {
     res.cookie("accessToken", newAccessToken, {
       httpOnly: true,
       secure: true,
-      sameSite: "Strict",
+      sameSite: "strict",
       maxAge: 15 * 60 * 1000,
     });
 

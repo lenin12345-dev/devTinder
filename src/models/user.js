@@ -13,62 +13,47 @@ const { Schema } = mongoose;
 
 const userSchema = new Schema(
   {
-    firstName: {
-      type: String,
-      required: true,
-      minLength: 4,
-    },
-    lastName: {
-      type: String,
-    },
+    firstName: { type: String, required: true, minLength: 4 },
+    lastName: { type: String },
     emailId: {
       type: String,
       required: true,
       unique: true,
       lowercase: true,
       trim: true,
-      validate(value) {
-        if (!validator.isEmail(value)) {
-          throw new Error("Invalid Email");
-        }
+      validate: (value) => {
+        if (!validator.isEmail(value)) throw new Error("Invalid Email");
       },
+      index: true,
     },
-    password: {
-      type: String,
-      required: true,
-    },
-    age: {
-      type: Number,
-      min: 18,
-    },
+    password: { type: String, required: true },
+    age: { type: Number, min: 18 },
     gender: {
       type: String,
-      validate(value) {
-        if (!["male", "female", "other"].includes(value)) {
+      validate: (value) => {
+        if (!["male", "female", "other"].includes(value))
           throw new Error("Invalid gender");
-        }
       },
     },
     photoUrl: {
       type: String,
       default: "https://via.placeholder.com/400x500?text=User+Profile",
-      validate(value) {
-        if (!validator.isURL(value)) {
-          throw new Error("Invalid URL");
-        }
+      validate: (value) => {
+        if (!validator.isURL(value)) throw new Error("Invalid URL");
       },
     },
-    skills: {
-      type: [String],
-    },
-    refreshToken: {
-      type: String,
-      select: false,
-    },
+    skills: { type: [String] },
+    refreshToken: { type: String, select: false },
   },
   { timestamps: true },
 );
 
+// Indexes
+userSchema.index({ emailId: 1 });
+userSchema.index({ skills: 1 });
+userSchema.index({ gender: 1, age: -1 });
+
+// Methods
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign({ _id: this._id }, ACCESS_SECRET, {
     expiresIn: ACCESS_EXPIRY,
@@ -81,9 +66,8 @@ userSchema.methods.generateRefreshToken = function () {
   });
 };
 
-userSchema.methods.validatePassword = async function (inpuTpassword) {
-  const isValid = await bcrypt.compare(inpuTpassword, this.password);
-  return isValid;
+userSchema.methods.validatePassword = async function (inputPassword) {
+  return await bcrypt.compare(inputPassword, this.password);
 };
 
-module.exports = mongoose.model("User", userSchema); //exporting the model
+module.exports = mongoose.model("User", userSchema);

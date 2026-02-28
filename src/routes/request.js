@@ -64,31 +64,32 @@ requestRouter.post(
   async (req, res) => {
     try {
       const { status, requestId } = req.params;
-      const toUserId = req.userId;
-      const userExist = await User.findById(requestId);
-      if (!userExist) {
-        return res
-          .status(404)
-          .json({ message: "User who is requesting not found" });
-      }
+      const loggedInUserId = req.userId;
 
       const allowedStatus = ["accepted", "rejected"];
       if (!allowedStatus.includes(status)) {
         return res.status(400).json({ message: "Invalid status" });
       }
+
       const connectReview = await ConnectRequest.findOne({
-        fromUserId: requestId,
-        toUserId: toUserId,
+        _id: requestId,
+        toUserId: loggedInUserId,
         status: "interested",
       });
+
       if (!connectReview) {
         return res
-          .status(400)
-          .json({ message: "connection request not found" });
+          .status(404)
+          .json({ message: "Connection request not found" });
       }
+
       connectReview.status = status;
-      const data = await connectReview.save();
-      res.status(201).json({ data: data });
+      await connectReview.save();
+
+      res.status(200).json({
+        message: `Request ${status}`,
+        data: connectReview,
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
